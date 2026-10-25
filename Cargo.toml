@@ -1,0 +1,16 @@
+[package]
+name = "astroleak"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ggez = "0.10.0"
+hecs = "0.11.2"
+log = "0.4.34"
+
+[dependencies.anyhow]
+version = "1.0.104"
+default-features = false
+
+[dependencies.stop-log]
+git = "https://github.com/stopmind/stop-log"
