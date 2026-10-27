@@ -9,6 +9,9 @@ use ggez::{
 
 pub fn dev_entry(game: &mut Game, _ctx: &mut Context) -> CmdResult {
     game.run_sim = true;
+    game.free_cam = true;
+
+    game.sim_render.zoom = 7.0;
 
     let chunk = game.sim.tiles_map.new_chunk(ivec2(0, 0));
 
