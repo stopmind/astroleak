@@ -1,18 +1,26 @@
 use ggez::{
-    glam::{IVec2, UVec2, Vec2, ivec2, usizevec2, vec2},
+    glam::{IVec2, UVec2, Vec2, ivec2, vec2},
     graphics::{Canvas, DrawParam, Image},
 };
 use std::collections::HashMap;
+use ggez::graphics::Rect;
 
 pub const CHUNK_SIZE: usize = 16;
 pub const TILE_SIZE: u32 = 8;
 
 #[repr(u8)]
 #[derive(Default, Copy, Clone, Eq, PartialEq)]
-pub enum Tile {
+pub enum TileType {
     #[default]
     Empty,
     Stone,
+    Ice
+}
+
+#[derive(Default, Copy, Clone)]
+pub struct Tile {
+    pub bg: TileType,
+    pub fg: TileType,
 }
 
 pub struct Chunk {
@@ -36,7 +44,7 @@ impl Chunk {
 impl Default for Chunk {
     fn default() -> Self {
         Self {
-            tiles: [Tile::Empty; CHUNK_SIZE * CHUNK_SIZE],
+            tiles: [Tile::default(); CHUNK_SIZE * CHUNK_SIZE],
         }
     }
 }
@@ -110,7 +118,7 @@ pub struct TileRender {
 
 impl TileRender {
     pub fn new(atlas: Image) -> Self {
-        let width = atlas.width() / TILE_SIZE;
+        let width = atlas.width() / TILE_SIZE / 2;
         let tile_count = width * atlas.height() / TILE_SIZE;
 
         Self {
@@ -121,6 +129,29 @@ impl TileRender {
             draw_empty: false,
             draw_unknown: true,
         }
+    }
+
+    fn tile_tex_rect(&self, tile: TileType, is_bg: bool) -> Option<Rect> {
+        if tile == TileType::Empty && !self.draw_empty {
+            return None;
+        }
+
+        let mut idx = tile as u32 + 1;
+
+        if idx >= self.tile_count {
+            if self.draw_unknown {
+                idx = 0
+            } else {
+                return None;
+            }
+        }
+
+        Some(self.atlas.uv_rect(
+            idx % self.atlas_width * TILE_SIZE * 2 + if is_bg { TILE_SIZE } else { 0 },
+            idx / self.atlas_width * TILE_SIZE,
+            TILE_SIZE,
+            TILE_SIZE,
+        ))
     }
 
     pub fn render(&self, map: &TilesMap, canvas: &mut Canvas) {
@@ -136,30 +167,17 @@ impl TileRender {
             for x in 0..CHUNK_SIZE {
                 for y in 0..CHUNK_SIZE {
                     let tile = chunk.tiles[x + y * CHUNK_SIZE];
-                    if tile == Tile::Empty && !self.draw_empty {
-                        continue;
+
+                    if let Some(src) = self.tile_tex_rect(tile.fg, false)
+                        .or_else(|| self.tile_tex_rect(tile.bg, true))
+                    {
+                        canvas.draw(
+                            &self.atlas,
+                            DrawParam::new()
+                                .src(src)
+                                .dest(chunk_pos + TILE_VEC * vec2(x as f32, y as f32))
+                        );
                     }
-
-                    let mut idx = tile as u32 + 1;
-
-                    if idx >= self.tile_count {
-                        if self.draw_unknown {
-                            idx = 0
-                        } else {
-                            continue;
-                        }
-                    }
-
-                    let src = self.atlas.uv_rect(
-                        idx % self.atlas_width * TILE_SIZE,
-                        idx / self.atlas_width * TILE_SIZE,
-                        TILE_SIZE,
-                        TILE_SIZE,
-                    );
-
-                    let pos = chunk_pos + TILE_VEC * usizevec2(x, y).as_vec2();
-
-                    canvas.draw(&self.atlas, DrawParam::new().src(src).dest(pos));
                 }
             }
         }
