@@ -1,11 +1,13 @@
+use log::LevelFilter;
+
+use crate::core::Game;
+
 mod core;
 mod entries;
 pub mod sim;
 
-use crate::core::Game;
-use log::LevelFilter;
-
-fn main() {
+#[macroquad::main("astroleak")]
+async fn main() {
     stop_log::init(None, LevelFilter::Info);
-    Game::run(entries::dev_entry).unwrap();
+    Game::run(entries::dev_entry).await.unwrap();
 }

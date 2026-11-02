@@ -4,9 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ggez = "0.10.0"
 hecs = "0.11.2"
 log = "0.4.34"
+noise = "0.9.0"
+thiserror = "2.0.21"
+
+[dependencies.macroquad]
+version = "0.4.16"
+features = ["log-rs"]
 
 [dependencies.anyhow]
 version = "1.0.104"

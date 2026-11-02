@@ -1,9 +1,9 @@
-use ggez::{
-    glam::{IVec2, UVec2, Vec2, ivec2, vec2},
-    graphics::{Canvas, DrawParam, Image},
+use macroquad::{
+    color::WHITE,
+    math::{IVec2, Rect, UVec2, Vec2, ivec2, vec2},
+    texture::{DrawTextureParams, Texture2D, draw_texture_ex},
 };
 use std::collections::HashMap;
-use ggez::graphics::Rect;
 
 pub const CHUNK_SIZE: usize = 16;
 pub const TILE_SIZE: u32 = 8;
@@ -14,7 +14,7 @@ pub enum TileType {
     #[default]
     Empty,
     Stone,
-    Ice
+    Ice,
 }
 
 #[derive(Default, Copy, Clone)]
@@ -32,12 +32,12 @@ fn tile_to_index(pos: UVec2) -> usize {
 }
 
 impl Chunk {
-    pub fn tile(&self, pos: UVec2) -> Option<&Tile> {
-        self.tiles.get(tile_to_index(pos))
+    pub fn tile(&self, pos: UVec2) -> &Tile {
+        &self.tiles[tile_to_index(pos)]
     }
 
-    pub fn tile_mut(&mut self, pos: UVec2) -> Option<&mut Tile> {
-        self.tiles.get_mut(tile_to_index(pos))
+    pub fn tile_mut(&mut self, pos: UVec2) -> &mut Tile {
+        &mut self.tiles[tile_to_index(pos)]
     }
 }
 
@@ -97,18 +97,18 @@ impl TilesMap {
     #[inline]
     pub fn tile(&self, pos: IVec2) -> Option<&Tile> {
         let (chunk, local) = tile_to_chunk_local(pos);
-        self.chunk(chunk)?.tile(local)
+        self.chunk(chunk).map(|c| c.tile(local))
     }
 
     #[inline]
     pub fn tile_mut(&mut self, pos: IVec2) -> Option<&mut Tile> {
         let (chunk, local) = tile_to_chunk_local(pos);
-        self.chunk_mut(chunk)?.tile_mut(local)
+        self.chunk_mut(chunk).map(|c| c.tile_mut(local))
     }
 }
 
 pub struct TileRender {
-    atlas: Image,
+    atlas: Texture2D,
     atlas_width: u32,
     tile_count: u32,
 
@@ -117,9 +117,9 @@ pub struct TileRender {
 }
 
 impl TileRender {
-    pub fn new(atlas: Image) -> Self {
-        let width = atlas.width() / TILE_SIZE / 2;
-        let tile_count = width * atlas.height() / TILE_SIZE;
+    pub fn new(atlas: Texture2D) -> Self {
+        let width = atlas.width() as u32 / TILE_SIZE / 2;
+        let tile_count = width * atlas.height() as u32 / TILE_SIZE;
 
         Self {
             atlas,
@@ -146,15 +146,15 @@ impl TileRender {
             }
         }
 
-        Some(self.atlas.uv_rect(
-            idx % self.atlas_width * TILE_SIZE * 2 + if is_bg { TILE_SIZE } else { 0 },
-            idx / self.atlas_width * TILE_SIZE,
-            TILE_SIZE,
-            TILE_SIZE,
+        Some(Rect::new(
+            (idx % self.atlas_width * TILE_SIZE * 2 + if is_bg { TILE_SIZE } else { 0 }) as f32,
+            (idx / self.atlas_width * TILE_SIZE) as f32,
+            TILE_SIZE as f32,
+            TILE_SIZE as f32,
         ))
     }
 
-    pub fn render(&self, map: &TilesMap, canvas: &mut Canvas) {
+    pub fn render(&self, map: &TilesMap) {
         const TILE_VEC: Vec2 = vec2(TILE_SIZE as f32, TILE_SIZE as f32);
         const CHUNK_VEC: Vec2 = vec2(
             (CHUNK_SIZE as u32 * TILE_SIZE) as f32,
@@ -168,14 +168,20 @@ impl TileRender {
                 for y in 0..CHUNK_SIZE {
                     let tile = chunk.tiles[x + y * CHUNK_SIZE];
 
-                    if let Some(src) = self.tile_tex_rect(tile.fg, false)
+                    if let Some(src) = self
+                        .tile_tex_rect(tile.fg, false)
                         .or_else(|| self.tile_tex_rect(tile.bg, true))
                     {
-                        canvas.draw(
+                        let pos = chunk_pos + TILE_VEC * vec2(x as f32, y as f32);
+                        draw_texture_ex(
                             &self.atlas,
-                            DrawParam::new()
-                                .src(src)
-                                .dest(chunk_pos + TILE_VEC * vec2(x as f32, y as f32))
+                            pos.x,
+                            pos.y,
+                            WHITE,
+                            DrawTextureParams {
+                                source: Some(src),
+                                ..Default::default()
+                            },
                         );
                     }
                 }

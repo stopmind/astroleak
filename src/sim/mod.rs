@@ -1,4 +1,5 @@
 pub mod collision;
+pub mod generation;
 pub mod render;
 pub mod tiles;
 
@@ -6,17 +7,21 @@ use crate::{
     core::{Game, command::CmdResult},
     sim::tiles::TilesMap,
 };
-use ggez::Context;
 use hecs::World;
 
 #[derive(Default)]
 pub struct Simulation {
     pub world: World,
-    pub tiles_map: TilesMap,
+    pub tiles: TilesMap,
 }
 
 impl Simulation {
-    pub fn update(_game: &mut Game, _ctx: &mut Context) -> CmdResult {
+    pub fn clear(&mut self) {
+        self.world.clear();
+        self.tiles.clear();
+    }
+
+    pub fn update(_game: &mut Game) -> CmdResult {
         Ok(())
     }
 }
