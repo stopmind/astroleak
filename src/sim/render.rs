@@ -1,15 +1,20 @@
 use macroquad::{
     camera::{Camera2D, set_camera, set_default_camera},
+    color::PURPLE,
     input::{KeyCode, is_key_down},
-    math::Vec2,
+    math::{UVec2, Vec2},
     miniquad::window::screen_size,
+    shapes::draw_line,
     texture::load_texture,
     time::get_frame_time,
 };
 
 use crate::{
     core::{Game, GameResult, command::CmdResult},
-    sim::{Simulation, tiles::TileRender},
+    sim::{
+        Simulation,
+        tiles::{CHUNK_SIZE, TILE_SIZE, TileRender},
+    },
 };
 
 pub struct SimRender {
@@ -19,6 +24,7 @@ pub struct SimRender {
     pub zoom: f32,
 
     pub free_cam: bool,
+    pub draw_grid: bool,
 }
 
 impl SimRender {
@@ -30,6 +36,7 @@ impl SimRender {
             camera: Vec2::ZERO,
             zoom: 1.0,
             free_cam: false,
+            draw_grid: false,
         })
     }
 
@@ -71,12 +78,28 @@ impl SimRender {
         let size = Vec2::from(screen_size());
         let camera = Camera2D {
             target: self.camera,
-            zoom: Vec2::ONE / size * self.zoom,
+            zoom: Vec2::ONE * 2.0 / size * self.zoom,
             ..Default::default()
         };
 
         set_camera(&camera);
         self.tile.render(&sim.tiles);
         set_default_camera();
+
+        if self.draw_grid {
+            let real_chunk = TILE_SIZE as f32 * CHUNK_SIZE as f32 * self.zoom;
+
+            let zero = (size / 2.) - self.camera * self.zoom;
+            let chunk_offset = zero % real_chunk;
+            let chunk_count = (size / real_chunk).as_uvec2() + UVec2::ONE * 2;
+
+            for x in (0..chunk_count.x).map(|x| x as f32 * real_chunk + chunk_offset.x) {
+                draw_line(x, 0.0, x, size.y, 1.0, PURPLE);
+            }
+
+            for y in (0..chunk_count.y).map(|y| y as f32 * real_chunk + chunk_offset.y) {
+                draw_line(0.0, y, size.x, y, 1.0, PURPLE);
+            }
+        }
     }
 }

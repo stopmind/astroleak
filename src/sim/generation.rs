@@ -43,10 +43,10 @@ impl StandardGen {
 impl IntoCommand for StandardGen {
     fn into_command(self) -> Command {
         Command::func(move |game| {
-            let tiles = &mut game.sim.tiles;
+            let tiles: &mut TilesMap = &mut game.sim.tiles;
 
-            for x in -2..3 {
-                for y in -2..3 {
+            for x in 0..5 {
+                for y in 0..5 {
                     self.gen_chunk(tiles, ivec2(x, y));
                 }
             }

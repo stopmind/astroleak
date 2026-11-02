@@ -1,5 +1,6 @@
 use macroquad::{
     color::BLACK,
+    texture::{FilterMode, set_default_filter_mode},
     window::{clear_background, next_frame},
 };
 use thiserror::Error;
@@ -35,6 +36,8 @@ pub struct Game {
 
 impl Game {
     async fn init() -> GameResult<Game> {
+        set_default_filter_mode(FilterMode::Nearest);
+
         Ok(Game {
             registry: Registry::load().await,
             cmds: CommandsQueue::default(),
